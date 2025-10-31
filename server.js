@@ -1,3 +1,10 @@
+import express from "express";
+import fetch from "node-fetch";
+import bodyParser from "body-parser";
+
+const app = express();
+app.use(bodyParser.json());
+
 app.post("/webhook", async (req, res) => {
   try {
     const entry = req.body.entry?.[0];
