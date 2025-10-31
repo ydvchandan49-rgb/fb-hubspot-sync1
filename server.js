@@ -32,14 +32,24 @@ app.post("/webhook", async (req, res) => {
 
     console.log("📥 New Lead Received:", leadId);
 
+    // 🕒 Delay 5 seconds to allow HubSpot auto-sync contact creation
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    console.log("⏳ Waited 5 seconds before syncing to HubSpot...");
+
     // 1️⃣ Fetch lead data (including email + ad/campaign IDs)
     const leadData = await fetch(
       `https://graph.facebook.com/v19.0/${leadId}?fields=field_data,ad_id,adset_id,campaign_id&access_token=${FB_ACCESS_TOKEN}`
     ).then(r => r.json());
     console.log("📦 Full Lead Data:", JSON.stringify(leadData.field_data, null, 2));
 
+    // 2️⃣ Try to get email field (case-insensitive, flexible)
+    const emailField = leadData.field_data?.find(f =>
+      ["email", "e-mail", "work_email", "official_email"].some(key =>
+        f.name.toLowerCase().includes(key)
+      )
+    );
+    const email = emailField?.values?.[0];
 
-    const email = leadData.field_data?.find(f => f.name === "email")?.values?.[0];
     if (!email) {
       console.log("⚠️ No email found in lead data. Cannot update HubSpot contact.");
       return res.sendStatus(200);
@@ -47,7 +57,7 @@ app.post("/webhook", async (req, res) => {
 
     const { ad_id, adset_id, campaign_id } = leadData || {};
 
-    // 2️⃣ Get names from Facebook
+    // 3️⃣ Get names from Facebook
     let adName = "", adsetName = "", campaignName = "";
     if (ad_id)
       adName = (await fetch(`https://graph.facebook.com/v19.0/${ad_id}?fields=name&access_token=${FB_ACCESS_TOKEN}`).then(r => r.json())).name || "";
@@ -56,7 +66,8 @@ app.post("/webhook", async (req, res) => {
     if (campaign_id)
       campaignName = (await fetch(`https://graph.facebook.com/v19.0/${campaign_id}?fields=name&access_token=${FB_ACCESS_TOKEN}`).then(r => r.json())).name || "";
 
-    // 3️⃣ Find contact by email in HubSpot
+    // 4️⃣ Find contact by email in HubSpot
+    console.log("🔎 Searching HubSpot contact for email:", email);
     const searchRes = await fetch("https://api.hubapi.com/crm/v3/objects/contacts/search", {
       method: "POST",
       headers: {
@@ -66,7 +77,9 @@ app.post("/webhook", async (req, res) => {
       body: JSON.stringify({
         filterGroups: [
           {
-            filters: [{ propertyName: "email", operator: "EQ", value: email }],
+            filters: [
+              { propertyName: "email", operator: "CONTAINS_TOKEN", value: email.toLowerCase() }
+            ],
           },
         ],
         properties: ["email"],
@@ -77,37 +90,49 @@ app.post("/webhook", async (req, res) => {
 
     if (!contactId) {
       console.log(`⚠️ No HubSpot contact found for ${email}`);
+      console.log("🧩 HubSpot Search Response:", JSON.stringify(searchRes, null, 2));
       return res.sendStatus(200);
     }
 
-    // 4️⃣ Update contact
-    const updateRes = await fetch(`https://api.hubapi.com/crm/v3/objects/contacts/${contactId}`, {
+    // 5️⃣ Update contact with error capture
+    const updatePayload = {
+      properties: {
+        fb_campaign_name: campaignName,
+        fb_adset_name: adsetName,
+        fb_ad_name: adName,
+        last_fb_ad_sync: new Date().toISOString(),
+      },
+    };
+
+    const updateResponse = await fetch(`https://api.hubapi.com/crm/v3/objects/contacts/${contactId}`, {
       method: "PATCH",
       headers: {
         Authorization: `Bearer ${HUBSPOT_TOKEN}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        properties: {
-          fb_campaign_name: campaignName,
-          fb_adset_name: adsetName,
-          fb_ad_name: adName,
-          last_fb_ad_sync: new Date().toISOString(),
-        },
-      }),
-    }).then(r => r.json());
+      body: JSON.stringify(updatePayload),
+    });
 
-    console.log(`✅ Updated contact ${email} (${contactId}) → ${campaignName} | ${adsetName} | ${adName}`);
+    const updateResult = await updateResponse.json();
+
+    // 🧠 Log both success and errors clearly
+    if (!updateResponse.ok) {
+      console.error("❌ HubSpot Update Error:", JSON.stringify(updateResult, null, 2));
+    } else {
+      console.log(`✅ Updated contact ${email} (${contactId})`);
+      console.log(`📊 FB Data → Campaign: ${campaignName} | Adset: ${adsetName} | Ad: ${adName}`);
+      console.log("📤 HubSpot Response:", JSON.stringify(updateResult, null, 2));
+    }
+
     res.status(200).json({
-      status: "success",
+      status: updateResponse.ok ? "success" : "failed",
       lead_id: leadId,
-      fb_campaign_name: campaignName,
-      fb_adset_name: adsetName,
-      fb_ad_name: adName
+      hubspot_status: updateResponse.status,
+      hubspot_result: updateResult,
     });
 
   } catch (err) {
-    console.error("❌ Error:", err.message);
+    console.error("❌ Server Error:", err.message);
     res.status(500).json({ error: err.message });
   }
 });
