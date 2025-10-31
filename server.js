@@ -36,6 +36,8 @@ app.post("/webhook", async (req, res) => {
     const leadData = await fetch(
       `https://graph.facebook.com/v19.0/${leadId}?fields=field_data,ad_id,adset_id,campaign_id&access_token=${FB_ACCESS_TOKEN}`
     ).then(r => r.json());
+    console.log("📦 Full Lead Data:", JSON.stringify(leadData.field_data, null, 2));
+
 
     const email = leadData.field_data?.find(f => f.name === "email")?.values?.[0];
     if (!email) {
