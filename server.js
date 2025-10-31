@@ -100,7 +100,8 @@ app.post("/webhook", async (req, res) => {
         fb_campaign_name: campaignName,
         fb_adset_name: adsetName,
         fb_ad_name: adName,
-        last_fb_ad_sync: new Date().toISOString(),
+        last_fb_ad_sync: new Date().setUTCHours(0, 0, 0, 0),
+
       },
     };
 
