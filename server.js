@@ -129,7 +129,6 @@ app.post("/webhook", async (req, res) => {
 
     // 5️⃣ Prepare update payload
     const now = new Date();
-    const now = new Date();
     const localMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
     const updatePayload = {
       properties: {
