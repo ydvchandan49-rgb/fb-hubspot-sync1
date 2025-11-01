@@ -129,14 +129,15 @@ app.post("/webhook", async (req, res) => {
 
     // 5️⃣ Prepare update payload
     const now = new Date();
-    const midnightUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).getTime();
+    const now = new Date();
+    const localMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
     const updatePayload = {
       properties: {
         fb_campaign_name: campaignName,
         fb_adset_name: adsetName,
         fb_ad_name: adName,
         // midnight UTC to avoid INVALID_DATE error
-         last_fb_ad_sync: midnightUTC,
+         last_fb_ad_sync: localMidnight,
       },
     };
 
