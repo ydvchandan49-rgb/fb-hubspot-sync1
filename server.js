@@ -128,7 +128,7 @@ app.post("/webhook", async (req, res) => {
     }
 
     // 5️⃣ Prepare update payload
-    const now = new Date();
+  
 // ✅ Always show "Today" in HubSpot date picker field
 const now = new Date();
 const lastFbAdSync = Date.UTC(
