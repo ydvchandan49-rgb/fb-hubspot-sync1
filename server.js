@@ -134,7 +134,7 @@ const now = new Date();
     const lastFbAdSync = Date.UTC(
       now.getUTCFullYear(),
       now.getUTCMonth(),
-      now.getUTCDate() // add 12h buffer for timezone alignment
+      now.getUTCDate() );// add 12h buffer for timezone alignment
     const updatePayload = {
       properties: {
         fb_campaign_name: campaignName,
