@@ -129,19 +129,26 @@ app.post("/webhook", async (req, res) => {
 
     // 5️⃣ Prepare update payload
   
-// ✅ Always show "Today" in HubSpot date picker field
+// --- ✅ Fix for correct "Today" in IST (India timezone) ---
 const now = new Date();
-    const lastFbAdSync = Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate() );// add 12h buffer for timezone alignment
+
+// Convert UTC time to IST (+5:30)
+const istOffset = 5.5 * 60 * 60 * 1000;
+const istNow = new Date(now.getTime() + istOffset);
+
+// Extract the IST date part (YYYY-MM-DD)
+const dateOnlyIST = istNow.toISOString().split("T")[0];
+
+// Convert back to midnight UTC (for HubSpot date property)
+const hubspotDate = new Date(`${dateOnlyIST}T00:00:00Z`).getTime();/ ✅ Always show "Today" in HubSpot date picker field
+// add 12h buffer for timezone alignment
     const updatePayload = {
       properties: {
         fb_campaign_name: campaignName,
         fb_adset_name: adsetName,
         fb_ad_name: adName,
         // midnight UTC to avoid INVALID_DATE error
-         last_fb_ad_sync: lastFbAdSync,
+         last_fb_ad_sync: hubspotDate,
       },
     };
 
