@@ -129,15 +129,20 @@ app.post("/webhook", async (req, res) => {
 
     // 5️⃣ Prepare update payload
     const now = new Date();
-const offsetMs = now.getTimezoneOffset() * 60 * 1000; // e.g. -330 min for India = -19800000
-const utcAdjustedMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() - offsetMs
+// ✅ Always show "Today" in HubSpot date picker field
+const now = new Date();
+const lastFbAdSync = Date.UTC(
+  now.getUTCFullYear(),
+  now.getUTCMonth(),
+  now.getUTCDate()
+) + (12 * 60 * 60 * 1000); // add 12h buffer for timezone alignment
     const updatePayload = {
       properties: {
         fb_campaign_name: campaignName,
         fb_adset_name: adsetName,
         fb_ad_name: adName,
         // midnight UTC to avoid INVALID_DATE error
-         last_fb_ad_sync: utcAdjustedMidnight,
+         last_fb_ad_sync: lastFbAdSync,
       },
     };
 
