@@ -129,8 +129,7 @@ app.post("/webhook", async (req, res) => {
 
     // 5️⃣ Prepare update payload
   
-// --- ✅ Fix for correct "Today" in IST (India timezone) ---
-const now = new Date();
+
 
 // Convert UTC time to IST (+5:30)
 const istOffset = 5.5 * 60 * 60 * 1000;
