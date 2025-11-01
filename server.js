@@ -131,11 +131,10 @@ app.post("/webhook", async (req, res) => {
   
 // ✅ Always show "Today" in HubSpot date picker field
 const now = new Date();
-const lastFbAdSync = Date.UTC(
-  now.getUTCFullYear(),
-  now.getUTCMonth(),
-  now.getUTCDate()
-) + (12 * 60 * 60 * 1000); // add 12h buffer for timezone alignment
+    const lastFbAdSync = Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate() // add 12h buffer for timezone alignment
     const updatePayload = {
       properties: {
         fb_campaign_name: campaignName,
